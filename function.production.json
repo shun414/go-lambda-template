@@ -1,1 +1,11 @@
-
+{
+  "Architectures": [
+    "x86_64"
+  ],
+  "FunctionName": "go-lambda-template",
+  "Handler": "main",
+  "MemorySize": 512,
+  "Role": "",
+  "Runtime": "go1.x",
+  "Timeout": 10
+}
