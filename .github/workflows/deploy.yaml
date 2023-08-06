@@ -1,0 +1,55 @@
+on:
+  push:
+    branches:
+      - deploy/development
+      - deploy/production
+    paths:
+      - .
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-lambda:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set nev
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/deploy/production" ]; then
+            echo "ENV=prd" >> $GITHUB_ENV
+          else
+            echo "ENV=development" >> $GITHUB_ENV
+          fi
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Go build
+        run: GOOS=linux go build -ldflags='-s -w' -o bin/main ./cmd/main.go
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: # OIDC Role
+
+      - name: Checkout lambroll
+        uses: fujiwara/lambroll@v0
+        with:
+          version: v0.14.1
+
+      - name: Update Lambda function
+        run: |
+          lambroll deploy --function="function.$ENV.json" --src=./bin
